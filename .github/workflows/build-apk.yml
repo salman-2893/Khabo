@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
     steps:
       - name: Checkout Source Code
@@ -17,10 +19,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22' # Capacitor requires Node >= 22
 
       - name: Install Project Dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
       - name: Build Web App
         run: npm run build
@@ -31,26 +33,45 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Accept Android SDK Licenses
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Ensure Android SDK components
+        # make sure required SDK pieces are present so sdkmanager doesn't fail
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          # find sdkmanager binary (check common cmdline-tools paths then fallback to PATH)
+          if [ -x "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMAN="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          elif [ -x "$SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager" ]; then
+            SDKMAN="$SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager"
+          else
+            SDKMAN="$(which sdkmanager || true)"
+          fi
+          echo "Using sdkmanager: $SDKMAN"
+          if [ -z "$SDKMAN" ]; then
+            echo "sdkmanager not found; the android-actions/setup-android step should have provided it."
+          else
+            # Install cmdline-tools, platform-tools, platform and build-tools (adjust api/build-tools version if needed)
+            yes | "$SDKMAN" --install "cmdline-tools;latest" "platform-tools" "platforms;android-34" "build-tools;34.0.0" || true
+            yes | "$SDKMAN" --licenses || true
+          fi
 
       - name: Install Capacitor Tooling
-        run: |
-          npm install --legacy-peer-deps @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
+        run: npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android
 
       - name: Initialize & Sync Native Android Project
         run: |
+          # npx will use Node 22 set above. Add android if it doesn't exist, then sync.
           npx cap add android || true
           npx cap sync android
 
       - name: Build Android Debug APK
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
