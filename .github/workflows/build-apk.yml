@@ -19,7 +19,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22' # Capacitor requires Node >= 22
 
       - name: Install Project Dependencies
         run: npm install --legacy-peer-deps
@@ -37,10 +37,11 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Ensure Android SDK components
+        # make sure required SDK pieces are present so sdkmanager doesn't fail
         run: |
           set -euo pipefail
           SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
-
+          # find sdkmanager binary (check common cmdline-tools paths then fallback to PATH)
           if [ -x "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
             SDKMAN="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           elif [ -x "$SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager" ]; then
@@ -48,13 +49,14 @@ jobs:
           else
             SDKMAN="$(which sdkmanager || true)"
           fi
-
-          if [ -n "$SDKMAN" ]; then
+          echo "Using sdkmanager: $SDKMAN"
+          if [ -z "$SDKMAN" ]; then
+            echo "sdkmanager not found; the android-actions/setup-android step should have provided it."
+            exit 1
+          else
+            # Install cmdline-tools, platform-tools, platform and build-tools (adjust api/build-tools version if needed)
             yes | "$SDKMAN" --install "cmdline-tools;latest" "platform-tools" "platforms;android-34" "build-tools;34.0.0" || true
             yes | "$SDKMAN" --licenses || true
-          else
-            echo "sdkmanager not found"
-            exit 1
           fi
 
       - name: Install Capacitor Tooling
@@ -62,6 +64,7 @@ jobs:
 
       - name: Initialize & Sync Native Android Project
         run: |
+          # npx will use Node 22 set above. Add android if it doesn't exist, then sync.
           npx cap add android || true
           npx cap sync android
 
