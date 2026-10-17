@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, Building2, Github, Download, Copy, Check, Sparkles, X, ShieldCheck, Tag } from 'lucide-react';
+import { PlusCircle, Building2, Check, Sparkles, X, ShieldCheck, Tag } from 'lucide-react';
 import { Restaurant, Language } from '../types';
 import { translations } from '../data/translations';
 
@@ -21,7 +21,6 @@ export const OwnerModal: React.FC<OwnerModalProps> = ({
   if (!isOpen) return null;
 
   const t = translations[lang];
-  const [activeTab, setActiveTab] = useState<'submit' | 'github'>('submit');
 
   // Form State
   const [role, setRole] = useState<'owner' | 'foodie'>('owner');
@@ -46,7 +45,6 @@ export const OwnerModal: React.FC<OwnerModalProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
-  const [copiedJson, setCopiedJson] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,22 +121,6 @@ export const OwnerModal: React.FC<OwnerModalProps> = ({
     }
   };
 
-  const handleDownloadJson = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(allRestaurants, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', 'kothay-khabo-restaurants.json');
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
-
-  const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(allRestaurants, null, 2));
-    setCopiedJson(true);
-    setTimeout(() => setCopiedJson(false), 2500);
-  };
-
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fade-in">
       <div 
@@ -165,36 +147,9 @@ export const OwnerModal: React.FC<OwnerModalProps> = ({
           </button>
         </div>
 
-        {/* Tabs: Submit Info / GitHub Free Storage */}
-        <div className="px-6 pt-4 flex gap-2 border-b border-zinc-100 dark:border-zinc-800">
-          <button
-            onClick={() => setActiveTab('submit')}
-            className={`pb-3 text-xs sm:text-sm font-bold border-b-2 transition-all ${
-              activeTab === 'submit'
-                ? 'border-rose-600 text-rose-600 dark:text-rose-400'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            {t.ownerTabSubmit}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('github')}
-            className={`pb-3 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-1.5 ${
-              activeTab === 'github'
-                ? 'border-rose-600 text-rose-600 dark:text-rose-400'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <Github className="w-3.5 h-3.5" />
-            <span>{t.ownerTabExport}</span>
-          </button>
-        </div>
-
-        {/* Tab Content */}
+        {/* Modal Form Content */}
         <div className="p-6">
-          {activeTab === 'submit' ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
               
               {/* Role Picker */}
               <div>
@@ -403,50 +358,6 @@ export const OwnerModal: React.FC<OwnerModalProps> = ({
                 </div>
               )}
             </form>
-          ) : (
-            <div className="space-y-5">
-              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 space-y-2">
-                <div className="flex items-center gap-2 text-zinc-900 dark:text-white font-bold text-sm">
-                  <Github className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
-                  <span>{lang === 'bn' ? 'ফ্রি গিটহাব স্টোরেজ ও এক্সপোর্ট' : 'Zero-Cost GitHub Storage & Backup'}</span>
-                </div>
-                <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                  {t.githubExportDesc}
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={handleDownloadJson}
-                  className="flex-1 py-3 px-4 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold flex items-center justify-center gap-2 hover:bg-zinc-800 dark:hover:bg-white/90 transition-colors shadow-xs"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>{t.exportJsonBtn}</span>
-                </button>
-
-                <button
-                  onClick={handleCopyJson}
-                  className="py-3 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 text-zinc-800 dark:text-zinc-200 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
-                >
-                  {copiedJson ? (
-                    <>
-                      <Check className="w-4 h-4 text-emerald-600" />
-                      <span>{t.copiedJson}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      <span>{lang === 'bn' ? 'JSON ক্লিপবোর্ডে কপি করুন' : 'Copy JSON'}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-[11px] text-zinc-500 font-mono">
-                {lang === 'bn' ? 'বর্তমানে অ্যাপটিতে' : 'Currently containing'} {allRestaurants.length} {lang === 'bn' ? 'টি রেস্তোরাঁর ডেটা রয়েছে।' : 'restaurants with verified menus, photography tips, and active offers.'}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

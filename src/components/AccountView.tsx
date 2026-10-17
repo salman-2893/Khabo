@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  User, ShieldCheck, Building2, Github, Download, Copy, Check, 
-  Smartphone, FileCode, PlusCircle, Bookmark, Sparkles, ExternalLink 
+  User, ShieldCheck, Building2, Heart, PlusCircle, 
+  Bookmark, Check, Utensils, Star, MapPin, Tag, Sparkles 
 } from 'lucide-react';
 import { Restaurant, Language } from '../types';
 import { translations } from '../data/translations';
@@ -30,10 +30,38 @@ export const AccountView: React.FC<AccountViewProps> = ({
   const [userRole, setUserRole] = useState<'foodie' | 'owner'>(() => {
     return (localStorage.getItem('kothay_khabo_role') as any) || 'foodie';
   });
+  const [favoriteCuisines, setFavoriteCuisines] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('kothay_khabo_fav_cuisines');
+      return stored ? JSON.parse(stored) : ['Kacchi Biryani', 'Mustard Tehari', 'Naga Burgers'];
+    } catch {
+      return ['Kacchi Biryani', 'Mustard Tehari', 'Naga Burgers'];
+    }
+  });
+
   const [isEditing, setIsEditing] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [copiedWorkflow, setCopiedWorkflow] = useState(false);
-  const [copiedJson, setCopiedJson] = useState(false);
+
+  const availableCuisines = [
+    { id: 'Kacchi Biryani', bn: 'কাচ্চি বিরিয়ানি', en: 'Kacchi Biryani' },
+    { id: 'Mustard Tehari', bn: 'সরিষার তেহারি', en: 'Mustard Tehari' },
+    { id: 'Naga Burgers', bn: 'নাগা বার্গার', en: 'Naga Burgers' },
+    { id: 'Rooftop Cafes', bn: 'রুফটপ ক্যাফে ও আড্ডা', en: 'Rooftop Cafes' },
+    { id: 'Deshi Vorta', bn: 'দেশি খানা ও ভর্তা', en: 'Deshi Vorta' },
+    { id: 'Steaks & BBQ', bn: 'স্টেক ও কাবাব', en: 'Steaks & BBQ' },
+    { id: 'Italian Pizza', bn: 'ইতালিয়ান পিৎজা', en: 'Italian Pizza' },
+    { id: 'Fuchka & Cha', bn: 'ফুচকা ও স্পেশাল চা', en: 'Fuchka & Cha' },
+  ];
+
+  const handleToggleCuisine = (cId: string) => {
+    setFavoriteCuisines((prev) => {
+      const updated = prev.includes(cId)
+        ? prev.filter((item) => item !== cId)
+        : [...prev, cId];
+      localStorage.setItem('kothay_khabo_fav_cuisines', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,55 +71,6 @@ export const AccountView: React.FC<AccountViewProps> = ({
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
-
-  const handleDownloadDatabase = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(restaurants, null, 2));
-    const a = document.createElement('a');
-    a.href = dataStr;
-    a.download = 'kothay-khabo-database.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  };
-
-  const handleCopyDatabaseJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(restaurants, null, 2));
-    setCopiedJson(true);
-    setTimeout(() => setCopiedJson(false), 2500);
-  };
-
-  const workflowYamlContent = `name: Build Android APK (Kothay Khabo)
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install && npm run build
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap add android || true
-          npx cap sync android
-      - working-directory: android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Kothay-Khabo-Debug-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk`;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
@@ -126,12 +105,12 @@ jobs:
               )}
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              {restaurants.length} {lang === 'bn' ? 'টি রেস্তোরাঁর ডেটাবেস • ' : 'restaurants in database • '} 
+              {restaurants.length} {lang === 'bn' ? 'টি রেস্তোরাঁ ডিরেক্টরিতে সক্রিয় • ' : 'restaurants in directory • '} 
               <button 
                 onClick={() => onSelectTab('saved')} 
                 className="text-rose-600 hover:underline font-bold"
               >
-                {savedCount} {lang === 'bn' ? 'টি সংরক্ষিত' : 'saved spots'}
+                {savedCount} {lang === 'bn' ? 'টি বুকমার্ক করা' : 'saved spots'}
               </button>
             </p>
           </div>
@@ -150,7 +129,7 @@ jobs:
             className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-md transition-colors"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>{lang === 'bn' ? 'রেস্তোরাঁ যোগ' : 'Add Spot'}</span>
+            <span>{lang === 'bn' ? 'রেস্তোরাঁ যোগ করুন' : 'Add Restaurant'}</span>
           </button>
         </div>
       </div>
@@ -209,99 +188,58 @@ jobs:
         </div>
       )}
 
-      {/* GitHub APK Builder Work Files Spotlight */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 text-white border border-zinc-800 shadow-2xl space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Smartphone className="w-6 h-6 text-rose-500" />
-            <h2 className="text-lg sm:text-xl font-black">
-              {lang === 'bn' ? 'গিটহাব থেকে সরাসরি অ্যান্ড্রয়েড APK তৈরি করুন' : 'Build Free Android APK via GitHub Actions'}
-            </h2>
-          </div>
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-            {lang === 'bn' ? '১০০% ফ্রি' : '100% Free'}
-          </span>
+      {/* Favorite Food Cravings */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl space-y-4">
+        <div className="flex items-center gap-2 text-zinc-900 dark:text-white font-extrabold text-base">
+          <Utensils className="w-5 h-5 text-rose-600" />
+          <span>{lang === 'bn' ? 'আপনার প্রিয় খাবার ও ক্যাটাগরি' : 'My Preferred Cravings & Cuisines'}</span>
         </div>
-
-        <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-          {lang === 'bn'
-            ? 'আপনার অনুরোধ অনুযায়ী গিটহাবে পুশ করলেই স্বয়ংক্রিয়ভাবে অ্যান্ড্রয়েড APK বিল্ড করার সম্পূর্ণ ওয়ার্কফ্লো কনফিগারেশন যোগ করা হয়েছে (`.github/workflows/build-apk.yml` এবং `capacitor.config.json`)।'
-            : 'As requested, complete GitHub Actions configuration files have been added (`.github/workflows/build-apk.yml` and `capacitor.config.json`) so your repository automatically compiles ready-to-install Android APKs for free!'}
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          {lang === 'bn' 
+            ? 'পছন্দের ক্যাটাগরিগুলো নির্বাচন করে রাখুন যাতে দ্রুত রেস্তোরাঁ ও ডিসিশন নিতে সুবিধা হয়।'
+            : 'Select your favorite food types to customize your decision results.'}
         </p>
 
-        {/* Steps to Build APK */}
-        <div className="p-4 rounded-2xl bg-zinc-800/80 border border-zinc-700/80 space-y-2 text-xs">
-          <span className="font-extrabold text-amber-300 block">
-            {lang === 'bn' ? 'কীভাবে APK ডাউনলোড করবেন:' : 'How to get your Android APK:'}
-          </span>
-          <ol className="list-decimal list-inside space-y-1.5 text-zinc-300 font-medium">
-            <li>{lang === 'bn' ? 'এই কোডটি আপনার গিটহাব রিপোজিটরিতে পুশ করুন।' : 'Push this code repository to your GitHub account.'}</li>
-            <li>{lang === 'bn' ? 'গিটহাবের "Actions" ট্যাবে যান — বিল্ড প্রক্রিয়া স্বয়ংক্রিয়ভাবে চালু হবে।' : 'Go to the "Actions" tab in your GitHub repo — the build starts automatically.'}</li>
-            <li>{lang === 'bn' ? 'বিল্ড শেষ হলে Artifacts সেকশন থেকে "Kothay-Khabo-Debug-APK" সরাসরি মোবাইলে ডাউনলোড করুন!' : 'Download the ready "Kothay-Khabo-Debug-APK" directly to your Android device!'}</li>
-          </ol>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(workflowYamlContent);
-              setCopiedWorkflow(true);
-              setTimeout(() => setCopiedWorkflow(false), 2500);
-            }}
-            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold flex items-center gap-2 transition-colors"
-          >
-            {copiedWorkflow ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span>{lang === 'bn' ? 'ওয়ার্কফ্লো কপি হয়েছে!' : 'Workflow Copied!'}</span>
-              </>
-            ) : (
-              <>
-                <FileCode className="w-4 h-4" />
-                <span>{lang === 'bn' ? 'গিটহাব ওয়ার্কফ্লো YAML কপি' : 'Copy build-apk.yml'}</span>
-              </>
-            )}
-          </button>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {availableCuisines.map((c) => {
+            const isSelected = favoriteCuisines.includes(c.id);
+            return (
+              <button
+                key={c.id}
+                onClick={() => handleToggleCuisine(c.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  isSelected
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300'
+                }`}
+              >
+                {lang === 'bn' ? c.bn : c.en}
+                {isSelected && <span className="ml-1.5">✓</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* GitHub Free Data Export & Backup Section */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl space-y-4">
-        <div className="flex items-center gap-2 text-zinc-900 dark:text-white font-black text-lg">
-          <Github className="w-5 h-5 text-zinc-800 dark:text-zinc-200" />
-          <span>{lang === 'bn' ? 'ফ্রি ডেটা ব্যাকআপ ও গিটহাব সিঙ্ক' : 'Free Database Backup & GitHub Sync'}</span>
+      {/* Owner Verification & Update Section */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-rose-50 to-orange-50 dark:from-zinc-900 dark:to-zinc-900 border border-rose-200 dark:border-zinc-800 shadow-xl space-y-4">
+        <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-extrabold text-base">
+          <Building2 className="w-5 h-5" />
+          <span>{lang === 'bn' ? 'রেস্তোরাঁর মালিকদের ভেরিফিকেশন ও তথ্য আপডেট' : 'Restaurant Owner Portal'}</span>
         </div>
-
-        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+        <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
           {lang === 'bn'
-            ? 'এই অ্যাপটি কোনো ব্যয়বহুল পেইড ডেটাবেস ছাড়াই কাজ করার জন্য ডিজাইন করা হয়েছে। আপনি যেকোনো সময় সম্পূর্ণ রেস্তোরাঁ ও অফার ডেটাবেস JSON আকারে ডাউনলোড করে গিটহাব গিস্ট বা রিপোতে ফ্রি রাখতে পারেন।'
-            : 'Zero heavy database needed. Download or copy the clean JSON database anytime to host freely on GitHub Gist or your repository.'}
+            ? 'আপনি কি কোনো রেস্তোরাঁর মালিক বা প্রতিনিধি? আপনার মেনুর দাম, স্পেশাল খাবার, ফটোস্পটের বর্ণনা অথবা ফুডপ্যান্ডা/ব্যাংকের নতুন ডিসকাউন্ট অফার যুক্ত করুন যাতে ভোজনরসিকরা তা সরাসরি দেখতে পায়।'
+            : 'Are you a restaurant owner or manager? Keep your menu prices, signature dishes, photogenic highlights, and active promotions updated for local diners.'}
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <div className="pt-2">
           <button
-            onClick={handleDownloadDatabase}
-            className="flex-1 py-3 px-4 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold flex items-center justify-center gap-2 hover:bg-zinc-800 dark:hover:bg-white/90 transition-colors shadow-xs"
+            onClick={onOpenAddModal}
+            className="px-5 py-2.5 rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-bold text-xs hover:bg-rose-600 dark:hover:bg-rose-600 dark:hover:text-white transition-colors shadow-md flex items-center gap-2"
           >
-            <Download className="w-4 h-4" />
-            <span>{lang === 'bn' ? 'রেস্তোরাঁ ডেটা JSON ডাউনলোড' : 'Download Database JSON'}</span>
-          </button>
-
-          <button
-            onClick={handleCopyDatabaseJson}
-            className="py-3 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 text-zinc-800 dark:text-zinc-200 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
-          >
-            {copiedJson ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-600" />
-                <span>{t.copiedJson}</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>{lang === 'bn' ? 'JSON ক্লিপবোর্ডে কপি' : 'Copy JSON to Clipboard'}</span>
-              </>
-            )}
+            <PlusCircle className="w-4 h-4" />
+            <span>{lang === 'bn' ? 'রেস্তোরাঁর তথ্য ও অফার আপডেট করুন' : 'Submit / Update Profile & Deals'}</span>
           </button>
         </div>
       </div>

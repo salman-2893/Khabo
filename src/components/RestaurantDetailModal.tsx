@@ -24,6 +24,10 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [activePhotoTab, setActivePhotoTab] = useState<'all' | 'interior' | 'exterior'>('all');
   const [selectedImage, setSelectedImage] = useState<string>(restaurant.coverImage);
+  const [isFetchingReviews, setIsFetchingReviews] = useState<boolean>(false);
+  const [liveReviews, setLiveReviews] = useState<any[]>([]);
+  const [liveReviewSummary, setLiveReviewSummary] = useState<string | null>(null);
+  const [liveHighlights, setLiveHighlights] = useState<string[]>([]);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -237,20 +241,85 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Reviews Section */}
+          {/* Reviews Section with Live Google Maps & Web Aggregator */}
           <div>
-            <h2 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white mb-3">
-              {lang === 'bn' ? 'ভোজনরসিকদের মতামত (রিভিউ)' : 'Foodie Community Reviews'}
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <h2 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                <span>{lang === 'bn' ? 'গুগল ম্যাপস ও ভোজনরসিকদের রিভিউ' : 'Google Maps & Community Reviews'}</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                  ★ {restaurant.rating.toFixed(1)}
+                </span>
+              </h2>
+
+              {/* Trigger Live Review Fetch */}
+              <button
+                onClick={async () => {
+                  setIsFetchingReviews(true);
+                  try {
+                    const res = await fetch('/api/restaurants/live-reviews', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        restaurantName: restaurant.name,
+                        area: restaurant.area,
+                        city: restaurant.city,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.reviews && data.reviews.length > 0) {
+                      setLiveReviews(data.reviews);
+                      if (data.summary) setLiveReviewSummary(lang === 'bn' && data.summaryBn ? data.summaryBn : data.summary);
+                      if (data.highlights) setLiveHighlights(data.highlights);
+                    }
+                  } catch (err) {
+                    console.error('Failed to fetch live reviews:', err);
+                  } finally {
+                    setIsFetchingReviews(false);
+                  }
+                }}
+                disabled={isFetchingReviews}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 text-xs font-bold flex items-center gap-1.5 transition-colors self-start sm:self-auto disabled:opacity-60"
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${isFetchingReviews ? 'animate-spin' : ''}`} />
+                <span>{isFetchingReviews ? (lang === 'bn' ? 'ম্যাপস থেকে খোঁজা হচ্ছে...' : 'Searching Maps...') : (lang === 'bn' ? 'লাইভ গুগল ম্যাপস রিভিউ খুঁজুন' : 'Fetch Live Maps Reviews')}</span>
+              </button>
+            </div>
+
+            {/* Live Review AI Summary if fetched */}
+            {liveReviewSummary && (
+              <div className="p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200 space-y-2 mb-3">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                  <span>{lang === 'bn' ? 'গুগল ম্যাপস ও ওয়েব রিভিউ সারসংক্ষেপ:' : 'Google Maps & Web Review Highlights:'}</span>
+                </div>
+                <p className="leading-relaxed font-medium">{liveReviewSummary}</p>
+                {liveHighlights.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {liveHighlights.map((hl, idx) => (
+                      <span key={idx} className="px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-[11px] font-semibold text-amber-800 dark:text-amber-200">
+                        ✓ {hl}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reviews List */}
             <div className="space-y-2.5">
-              {restaurant.reviews.map((rev, i) => (
+              {(liveReviews.length > 0 ? liveReviews : restaurant.reviews).map((rev, i) => (
                 <div
                   key={i}
                   className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800"
                 >
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-bold text-zinc-900 dark:text-white">{rev.user}</span>
-                    <span className="text-zinc-400 dark:text-zinc-500 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-zinc-900 dark:text-white">{rev.user}</span>
+                      <div className="flex items-center text-amber-500">
+                        {'★'.repeat(Math.round(rev.rating))}
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">
                       via {rev.source}
                     </span>
                   </div>
@@ -260,6 +329,21 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                 </div>
               ))}
             </div>
+
+            {/* Google Maps External Review Button */}
+            {restaurant.googleMapsUrl && (
+              <div className="pt-2">
+                <a
+                  href={restaurant.googleMapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-rose-600 dark:text-rose-400 hover:underline font-bold inline-flex items-center gap-1"
+                >
+                  <span>{lang === 'bn' ? 'গুগল ম্যাপসে সকল রিভিউ পড়ুন' : 'Read all reviews on Google Maps'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Grounding URLs if present */}

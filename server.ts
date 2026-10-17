@@ -328,21 +328,80 @@ Format with markdown headings and bullet points.`;
   }
 });
 
-// API: GitHub Export / Backup Sync
-app.get('/api/github/export', (_req: Request, res: Response) => {
-  const custom = loadCustomRestaurants();
-  const fullData = {
-    appName: 'Kothay Khabo (কোথায় খাব)',
-    version: '1.0.0',
-    exportedAt: new Date().toISOString(),
-    totalRestaurants: INITIAL_RESTAURANTS.length + custom.length,
-    communityAdded: custom.length,
-    restaurants: [...custom, ...INITIAL_RESTAURANTS],
-  };
+// API: Live Google Maps & Web Reviews Aggregator
+app.post('/api/restaurants/live-reviews', async (req: Request, res: Response) => {
+  try {
+    const { restaurantName, area, city = 'Dhaka' } = req.body;
+    if (!restaurantName) {
+      res.status(400).json({ error: 'Restaurant name is required.' });
+      return;
+    }
 
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Content-Disposition', 'attachment; filename="kothay-khabo-database.json"');
-  res.json(fullData);
+    if (!process.env.GEMINI_API_KEY) {
+      res.status(500).json({ error: 'GEMINI_API_KEY is not configured.' });
+      return;
+    }
+
+    const prompt = `Search live Google Maps reviews, Foodpanda Bangladesh ratings, and web food reviews for: "${restaurantName}" in "${area || ''} ${city} Bangladesh".
+Find real, up-to-date feedback from diners and food lovers:
+1. Average rating and total review count
+2. Key positives (what people love: signature dishes, seating, photos, service)
+3. Any caveats (crowd timing, parking, spice level)
+4. 3 to 4 real-world diner review snippets with reviewer names and source ("Google Maps", "Foodpanda", "Foodies Community")
+
+Output in JSON format adhering to this structure:
+{
+  "rating": 4.6,
+  "reviewCount": 4200,
+  "summary": "Short 2-sentence summary of what diners say about this restaurant",
+  "summaryBn": "বাংলা সারসংক্ষেপ",
+  "highlights": ["Tender meat", "Scenic rooftop view", "Polite staff"],
+  "reviews": [
+    {
+      "user": "Reviewer Name",
+      "rating": 5,
+      "text": "English review text",
+      "textBn": "বাংলা অনুবাদ",
+      "source": "Google Maps",
+      "date": "Recent"
+    }
+  ]
+}
+Only output the JSON object without markdown code blocks.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
+    });
+
+    const text = response.text || '';
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const sources = groundingChunks
+      .map((c: any) => c.web)
+      .filter((w: any) => w && w.uri)
+      .map((w: any) => ({ title: w.title || 'Google Maps / Web Source', uri: w.uri }));
+
+    let parsed: any = null;
+    try {
+      const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]);
+    }
+
+    if (parsed) {
+      res.json({ success: true, ...parsed, sources });
+    } else {
+      res.json({ success: false, rawText: text, sources });
+    }
+  } catch (err: any) {
+    console.error('Live reviews error:', err);
+    res.status(500).json({ error: err.message || 'Failed to fetch reviews' });
+  }
 });
 
 // Vite middleware integration (Full stack)

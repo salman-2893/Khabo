@@ -61,6 +61,13 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
         maxZoom: 19,
       }).addTo(map);
 
+      // Add resize invalidate timeout
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 200);
+
       const markersGroup = L.layerGroup().addTo(map);
       markersLayerRef.current = markersGroup;
       mapInstanceRef.current = map;
@@ -90,11 +97,10 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
           <div style="
             width: 22px; 
             height: 22px; 
-            background: #e11d48; 
+            background: #2563eb; 
             border: 3px solid white; 
             border-radius: 50%; 
-            box-shadow: 0 0 14px rgba(225, 29, 72, 0.8);
-            animation: pulse 1.8s infinite;
+            box-shadow: 0 0 14px rgba(37, 99, 235, 0.9);
           "></div>
         `,
         iconSize: [22, 22],
@@ -119,7 +125,6 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
     const currentCoords = userCoords || DEFAULT_BANGLADESH_COORDS;
 
     restaurants.forEach((restaurant) => {
-      // If coordinates are missing, derive close to city/area
       const lat = restaurant.coordinates?.lat || (currentCoords.lat + (Math.random() - 0.5) * 0.04);
       const lng = restaurant.coordinates?.lng || (currentCoords.lng + (Math.random() - 0.5) * 0.04);
 
@@ -127,35 +132,55 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({
       if (filterOpenOnly && !openStatus.isOpen) return;
 
       const dist = calculateDistanceKm(currentCoords.lat, currentCoords.lng, lat, lng);
+      const displayName = lang === 'bn' ? restaurant.nameBn : restaurant.name;
 
-      // Create Custom HTML Marker Icon
+      // Create Custom 2D Pin HTML Marker Icon
       const customIcon = L.divIcon({
         className: 'restaurant-map-pin',
         html: `
           <div style="
-            background: ${openStatus.isOpen ? '#059669' : '#71717a'}; 
+            background: ${openStatus.isOpen ? '#e11d48' : '#4b5563'}; 
             color: white; 
             padding: 4px 8px; 
-            border-radius: 12px; 
+            border-radius: 9999px; 
             font-size: 11px; 
             font-weight: 800; 
-            display: flex; 
+            display: inline-flex; 
             align-items: center; 
-            gap: 4px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            gap: 5px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
             border: 2px solid white;
             white-space: nowrap;
             cursor: pointer;
           ">
-            <span>${openStatus.isOpen ? '🟢' : '⚪'}</span>
-            <span>৳${restaurant.avgPricePerPersonBDT}</span>
+            <span style="font-size: 12px;">${openStatus.isOpen ? '🟢' : '⚪'}</span>
+            <span style="max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ${displayName}
+            </span>
+            <span style="background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 6px; font-size: 10px;">
+              ৳${restaurant.avgPricePerPersonBDT}
+            </span>
           </div>
         `,
-        iconSize: [60, 26],
-        iconAnchor: [30, 13],
+        iconSize: [120, 30],
+        iconAnchor: [60, 15],
       });
 
       const marker = L.marker([lat, lng], { icon: customIcon });
+
+      marker.bindPopup(`
+        <div style="font-family: inherit; padding: 4px; min-width: 170px;">
+          <h4 style="font-weight: 800; font-size: 14px; margin-bottom: 2px;">${displayName}</h4>
+          <p style="font-size: 11px; color: #71717a; margin-bottom: 6px;">${restaurant.area}, ${restaurant.city}</p>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; margin-bottom: 8px;">
+            <span>${dist} km away</span>
+            <span style="color: ${openStatus.isOpen ? '#059669' : '#dc2626'};">${openStatus.isOpen ? 'Open Now' : 'Closed'}</span>
+          </div>
+          <a href="${getGoogleMapsRouteUrl(lat, lng, restaurant.name, userCoords)}" target="_blank" style="display: block; background: #e11d48; color: white; text-align: center; font-size: 11px; font-weight: 700; padding: 6px; border-radius: 8px; text-decoration: none;">
+            Get Route on Google Maps
+          </a>
+        </div>
+      `);
 
       marker.on('click', () => {
         setSelectedSpot(restaurant);

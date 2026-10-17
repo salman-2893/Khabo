@@ -1,9 +1,0 @@
-{
-  "appId": "com.kothaykhabo.app",
-  "appName": "Kothay Khabo",
-  "webDir": "dist",
-  "bundledWebRuntime": false,
-  "server": {
-    "androidScheme": "https"
-  }
-}

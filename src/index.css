@@ -35,9 +35,10 @@
   background: rgba(156, 163, 175, 0.7);
 }
 
-/* Leaflet map custom controls dark styling */
-.dark .leaflet-tile {
-  filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.85);
+/* Clean 2D Leaflet container styling */
+.leaflet-container {
+  font-family: var(--font-sans) !important;
+  z-index: 10;
 }
 
 .dark .leaflet-container {
@@ -49,4 +50,22 @@
   background: #27272a;
   color: #f4f4f5;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  border-radius: 16px;
+}
+
+/* Marker pulse animation */
+@keyframes user-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(225, 29, 72, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(225, 29, 72, 0);
+  }
+}
+
+.user-pulse-marker div {
+  animation: user-pulse 2s infinite;
 }

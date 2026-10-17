@@ -26,12 +26,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const navItems = [
     { id: 'explore', label: t.navExplore, icon: Compass },
-    { id: 'map', label: lang === 'bn' ? 'লাইভ ম্যাপ' : 'Live Map', icon: Map, badge: 'LIVE' },
+    { id: 'map', label: lang === 'bn' ? '২ডি ম্যাপ' : '2D Map', icon: Map, badge: 'LIVE' },
     { id: 'wizard', label: t.navWizard, icon: Sparkles, badge: 'AI' },
     { id: 'roulette', label: lang === 'bn' ? 'লটারি ড্র' : 'Lottery Draw', icon: Dices },
     { id: 'offers', label: t.navOffers, icon: Tag },
     { id: 'saved', label: t.navSaved, icon: Bookmark, count: savedCount },
-    { id: 'account', label: lang === 'bn' ? 'অ্যাকাউন্ট ও APK' : 'Account & APK', icon: User },
+    { id: 'account', label: lang === 'bn' ? 'প্রোফাইল' : 'Profile', icon: User },
   ];
 
   return (
@@ -59,7 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-medium line-clamp-1">
-                {lang === 'bn' ? 'ম্যাপ • দূরত্ব • লাইভ অফার • এআই গাইড' : 'Live Map • Proximity • Deals • AI'}
+                {lang === 'bn' ? '২ডি ম্যাপ • দূরত্ব • গুগল ম্যাপস রিভিউ • লাইভ ছাড়' : '2D Map • Google Reviews • Deals • AI'}
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* BN / EN Toggle */}
             <button
               onClick={onToggleLang}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:border-rose-400 text-xs sm:text-sm font-bold transition-all shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:border-rose-400 text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer"
               title="Toggle Bangla / English"
             >
               <Globe className="w-3.5 h-3.5 text-rose-600" />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Map, SlidersHorizontal, Sparkles, Dices, User, Tag } from 'lucide-react';
+import { Map, SlidersHorizontal, Sparkles, Dices, User } from 'lucide-react';
 import { Language } from '../types';
 
 interface BottomNavProps {
@@ -16,8 +16,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const tabs = [
     {
       id: 'map',
-      labelBn: 'লাইভ ম্যাপ',
-      labelEn: 'Live Map',
+      labelBn: '২ডি ম্যাপ',
+      labelEn: '2D Map',
       icon: Map,
       badge: 'LIVE',
     },
@@ -42,8 +42,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     },
     {
       id: 'account',
-      labelBn: 'অ্যাকাউন্ট ও APK',
-      labelEn: 'Account & APK',
+      labelBn: 'প্রোফাইল',
+      labelEn: 'Profile',
       icon: User,
     },
   ];
