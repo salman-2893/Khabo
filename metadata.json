@@ -1,0 +1,6 @@
+{
+  "name": "Kothay Khabo - কোথায় খাব",
+  "description": "Smart restaurant discovery and decision guide for Bangladesh. Aggregates live data from Google Maps and Foodpanda with budget, dish, aesthetic photography spot, and discount filters in Bangla and English.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
